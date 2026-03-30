@@ -24,7 +24,7 @@ variable "public_subnets" {
 variable "eks_cluster_endpoint" {
   description = "EKS API server endpoint URL"
   type        = string
-  default     = "https://<your‑actual‑endpoint>"
+  default     = "https://3AD1032DF45AF30B3D9A36B5523ACC00.gr7.us-east-1.eks.amazonaws.com"
 }
 
 variable "eks_cluster_ca" {
