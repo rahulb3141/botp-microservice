@@ -8,22 +8,22 @@ terraform {
       source  = "hashicorp/aws"
       version = "6.38.0"
     }
-  }
-}
-
-provider "aws" {
-  # Configuration options
-}
     kubernetes = {
       source  = "hashicorp/kubernetes"
       version = "3.0.1"
     }
   }
 }
-provider "kubernetes" {
-  # Configuration options
+
+provider "aws" {
+  region = var.region
 }
 
+provider "kubernetes" {
+  host                   = var.eks_cluster_endpoint
+  token                  = var.eks_token
+  cluster_ca_certificate = base64decode(var.eks_cluster_ca)
+}
 
 ##########################################
 # VPC (VPC for Blue)
