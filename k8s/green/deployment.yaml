@@ -1,1 +1,25 @@
-
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eks-webapp-green
+  namespace: green
+  labels:
+    app: eks-webapp
+    color: green
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: eks-webapp
+      color: green
+  template:
+    metadata:
+      labels:
+        app: eks-webapp
+        color: green
+    spec:
+      containers:
+        - name: eks-webapp
+          image: 941960167356.dkr.ecr.us-east-1.amazonaws.com/eks-webapp:green
+          ports:
+            - containerPort: 8082
