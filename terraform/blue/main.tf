@@ -20,7 +20,9 @@ provider "aws" {
 }
 
 provider "kubernetes" {
-  
+  host                   = var.eks_cluster_endpoint
+  token                  = var.eks_token
+  cluster_ca_certificate = base64decode(var.eks_cluster_ca)
 }
 
 ##########################################
