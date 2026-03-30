@@ -115,7 +115,7 @@ resource "aws_security_group" "blue_sg" {
 # KUBERNETES NAMESPACE
 ##########################################
 
-resource "kubernetes_namespace" "blue" {
+resource "kubernetes_namespace_v1" "blue" {
   metadata {
     name = "blue"
   }
