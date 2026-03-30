@@ -1,1 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myservice-blue
+  namespace: blue
+  labels:
+    app: myservice
+    color: blue
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: myservice
+      color: blue
+  template:
+    metadata:
+      labels:
+        app: myservice
+        color: blue
+    spec:
+      containers:
+        - name: myservice
+          image: 941960167356.dkr.ecr.us-east-1.amazonaws.com/eks-webapp:blue
+
+          ports:
+            - containerPort: 8081
 
