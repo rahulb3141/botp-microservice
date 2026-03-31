@@ -46,6 +46,7 @@ pipeline {
                 script {
                     def imageTag = (env.INACTIVE_COLOR == "blue") ? BLUE_TAG : GREEN_TAG
                     sh """
+                        cd botp-microservice
                         docker build -t ${ECR_REPO}:${imageTag} .
                     """
                 }
