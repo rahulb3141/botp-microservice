@@ -8,6 +8,8 @@ pipeline {
         BLUE_TAG = "blue"
         GREEN_TAG = "green"
         COLOR_FILE = "active_color.txt"     // file to track current prod color
+        KUBECONFIG = "/var/lib/jenkins/.kube/config"
+
     }
 
     stages {
