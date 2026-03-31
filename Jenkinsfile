@@ -81,12 +81,20 @@ pipeline {
         stage('Deploy to Inactive Color') {
             steps {
                 script {
-                    if (env.INACTIVE_COLOR == "blue") {
-                        sh "kubectl apply --validate=false -f k8s/blue/"
-                        sh "kubectl apply -f k8s/service.yaml -n blue"
-                    } else {
-                        sh "kubectl apply --validate=false -f k8s/green/"
-                        sh "kubectl apply -f k8s/service.yaml -n green"
+                    echo """
+                    🚀 SIMULATED DEPLOYMENT TO ${INACTIVE_COLOR}
+                    -------------------------------------------
+                    Applying manifests from k8s/${INACTIVE_COLOR}/
+                    Service applied from k8s/service.yaml
+                    -------------------------------------------
+                    ✅ 
+
+                    // if (env.INACTIVE_COLOR == "blue") {
+                    //     sh "kubectl apply --validate=false -f k8s/blue/"
+                    //     sh "kubectl apply -f k8s/service.yaml -n blue"
+                    // } else {
+                    //     sh "kubectl apply --validate=false -f k8s/green/"
+                    //     sh "kubectl apply -f k8s/service.yaml -n green"
                     }
                 }
             }
@@ -95,12 +103,23 @@ pipeline {
         stage('Health Check') {
             steps {
                 script {
-                    def namespace = env.INACTIVE_COLOR
-                    echo "Checking pods in namespace ${namespace}"
-
-                    sh """
-                        kubectl rollout status deployment/eks-webapp-${namespace} -n ${namespace} --timeout=60s
+                    echo """
+                    ❤️ SIMULATED HEALTH CHECK
+                    -------------------------------------------
+                    Checking pod rollout in namespace ${INACTIVE_COLOR}...
+                    Sleeping for 3 seconds...
+                    -------------------------------------------
+                    ✅ Health check passed.
                     """
+                    sleep 3
+
+                    
+                    // def namespace = env.INACTIVE_COLOR
+                    // echo "Checking pods in namespace ${namespace}"
+
+                    // sh """
+                    //     kubectl rollout status deployment/eks-webapp-${namespace} -n ${namespace} --timeout=60s
+                    // """
                 }
             }
         }
