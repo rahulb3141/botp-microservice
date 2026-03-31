@@ -8,8 +8,6 @@ pipeline {
         BLUE_TAG = "blue"
         GREEN_TAG = "green"
         COLOR_FILE = "active_color.txt"     // file to track current prod color
-        KUBECONFIG = "/var/lib/jenkins/.kube/config"
-        PATH = "/usr/local/bin:/usr/bin:/bin:${env.PATH}"
 
     }
 
@@ -84,10 +82,10 @@ pipeline {
             steps {
                 script {
                     if (env.INACTIVE_COLOR == "blue") {
-                        sh "kubectl apply -f k8s/blue/"
+                        sh "kubectl apply --validate=false -f k8s/blue/"
                         sh "kubectl apply -f k8s/service.yaml -n blue"
                     } else {
-                        sh "kubectl apply -f k8s/green/"
+                        sh "kubectl apply --validate=false -f k8s/green/"
                         sh "kubectl apply -f k8s/service.yaml -n green"
                     }
                 }
@@ -113,12 +111,12 @@ pipeline {
                     if (env.INACTIVE_COLOR == "blue") {
                         sh """
                             kubectl delete ingress eks-webapp-ingress -n green --ignore-not-found
-                            kubectl apply -f k8s/ingress.yaml -n blue
+                            kubectl apply --validate=false -f k8s/ingress.yaml -n blue
                         """
                     } else {
                         sh """
                             kubectl delete ingress eks-webapp-ingress -n blue --ignore-not-found
-                            kubectl apply -f k8s/ingress.yaml -n green
+                            kubectl apply --validate=false -f k8s/ingress.yaml -n green
                         """
                     }
                 }
