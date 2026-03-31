@@ -9,6 +9,7 @@ pipeline {
         GREEN_TAG = "green"
         COLOR_FILE = "active_color.txt"     // file to track current prod color
         KUBECONFIG = "/var/lib/jenkins/.kube/config"
+        PATH = "/usr/local/bin:/usr/bin:/bin:${env.PATH}"
 
     }
 
