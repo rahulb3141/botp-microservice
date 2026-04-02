@@ -124,10 +124,10 @@ pipeline {
                     """
 
                     if (env.INACTIVE_COLOR == "blue") {
-                        sh "kubectl apply --validate=false -f k8s/blue/"
+                        sh "kubectl apply -f k8s/blue/"
                         sh "kubectl apply -f k8s/service.yaml -n blue"
                     } else {
-                        sh "kubectl apply --validate=false -f k8s/green/"
+                        sh "kubectl apply -f k8s/green/"
                         sh "kubectl apply -f k8s/service.yaml -n green"
                     }
                 }
@@ -151,11 +151,13 @@ pipeline {
             steps {
                 script {
                     if (env.INACTIVE_COLOR == "blue") {
+                        echo "🔁 Switching traffic to BLUE..."
                         sh """
                             kubectl delete ingress eks-webapp-ingress -n green --ignore-not-found
                             kubectl apply --validate=false -f k8s/ingress.yaml -n blue
                         """
                     } else {
+                        echo "🔁 Switching traffic to GREEN..."
                         sh """
                             kubectl delete ingress eks-webapp-ingress -n blue --ignore-not-found
                             kubectl apply --validate=false -f k8s/ingress.yaml -n green
