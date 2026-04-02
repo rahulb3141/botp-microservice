@@ -1,14 +1,12 @@
 pipeline {
     agent any
     
-
     environment {
         AWS_REGION = "us-east-1"
         ECR_REPO = "941960167356.dkr.ecr.us-east-1.amazonaws.com/eks-webapp"
         BLUE_TAG = "blue"
         GREEN_TAG = "green"
         COLOR_FILE = "active_color.txt"     // file to track current prod color
-
     }
 
     stages {
@@ -42,6 +40,16 @@ pipeline {
             }
         }
 
+        stage('Verify AWS Identity') {
+            steps {
+                sh '''
+                    echo "=== Current AWS Identity ==="
+                    aws sts get-caller-identity
+                    echo "=== Should show eks-admin-role, NOT root ==="
+                '''
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 script {
@@ -55,14 +63,11 @@ pipeline {
 
         stage('Login to ECR') {
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', 
-                                  credentialsId: 'aws-credentials']]) {
-
-                    sh '''
-                        aws ecr get-login-password --region $AWS_REGION | \
-                        docker login --username AWS --password-stdin $ECR_REPO
-                    '''
-                }
+                sh '''
+                    echo "=== Logging into ECR using IAM role ==="
+                    aws ecr get-login-password --region $AWS_REGION | \
+                    docker login --username AWS --password-stdin $ECR_REPO
+                '''
             }
         }
 
@@ -82,19 +87,19 @@ pipeline {
             steps {
                 script {
                     echo """
-                    🚀 SIMULATED DEPLOYMENT TO ${INACTIVE_COLOR}
+                    🚀 DEPLOYMENT TO ${INACTIVE_COLOR}
                     -------------------------------------------
                     Applying manifests from k8s/${INACTIVE_COLOR}/
                     Service applied from k8s/service.yaml
                     -------------------------------------------
-                    ✅ 
+                    """
 
-                    // if (env.INACTIVE_COLOR == "blue") {
-                    //     sh "kubectl apply --validate=false -f k8s/blue/"
-                    //     sh "kubectl apply -f k8s/service.yaml -n blue"
-                    // } else {
-                    //     sh "kubectl apply --validate=false -f k8s/green/"
-                    //     sh "kubectl apply -f k8s/service.yaml -n green"
+                    if (env.INACTIVE_COLOR == "blue") {
+                        sh "kubectl apply --validate=false -f k8s/blue/"
+                        sh "kubectl apply -f k8s/service.yaml -n blue"
+                    } else {
+                        sh "kubectl apply --validate=false -f k8s/green/"
+                        sh "kubectl apply -f k8s/service.yaml -n green"
                     }
                 }
             }
@@ -103,23 +108,12 @@ pipeline {
         stage('Health Check') {
             steps {
                 script {
-                    echo """
-                    ❤️ SIMULATED HEALTH CHECK
-                    -------------------------------------------
-                    Checking pod rollout in namespace ${INACTIVE_COLOR}...
-                    Sleeping for 3 seconds...
-                    -------------------------------------------
-                    ✅ Health check passed.
+                    def namespace = env.INACTIVE_COLOR
+                    echo "Checking pods in namespace ${namespace}"
+
+                    sh """
+                        kubectl rollout status deployment/eks-webapp-${namespace} -n ${namespace} --timeout=60s
                     """
-                    sleep 3
-
-                    
-                    // def namespace = env.INACTIVE_COLOR
-                    // echo "Checking pods in namespace ${namespace}"
-
-                    // sh """
-                    //     kubectl rollout status deployment/eks-webapp-${namespace} -n ${namespace} --timeout=60s
-                    // """
                 }
             }
         }
@@ -156,5 +150,5 @@ pipeline {
         failure {
             echo "Deployment failed. Rollback may be required."
         }
-    }
-}
+        success {
+            echo
