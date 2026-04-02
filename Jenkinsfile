@@ -50,6 +50,35 @@ pipeline {
             }
         }
 
+        stage('Test Kubectl Access') {
+            steps {
+                script {
+                    try {
+                        sh '''
+                            echo "=== Testing kubectl access ==="
+                            aws eks update-kubeconfig --name eks-cluster --region $AWS_REGION
+                            kubectl get nodes
+                            kubectl get namespaces
+                            echo "=== Checking EKS cluster authentication mode ==="
+                            aws eks describe-cluster --name eks-cluster --region $AWS_REGION --query 'cluster.accessConfig.authenticationMode'
+                        '''
+                        echo "✅ kubectl access working!"
+                    } catch (Exception e) {
+                        echo "❌ kubectl access not ready yet: ${e.getMessage()}"
+                        echo """
+                        🔧 TROUBLESHOOTING STEPS:
+                        1. Check if EKS authentication mode update is complete
+                        2. Ensure access entry is created for eks-admin-role
+                        3. Run these commands manually:
+                           aws eks create-access-entry --cluster-name eks-cluster --principal-arn arn:aws:iam::941960167356:role/eks-admin-role --type STANDARD
+                           aws eks associate-access-policy --cluster-name eks-cluster --principal-arn arn:aws:iam::941960167356:role/eks-admin-role --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy --access-scope type=cluster
+                        """
+                        error("EKS authentication not configured yet. Please complete the access entry setup.")
+                    }
+                }
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 script {
