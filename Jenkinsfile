@@ -139,10 +139,10 @@ pipeline {
                 script {
                     def namespace = env.INACTIVE_COLOR
                     def deployName = (ns == "blue") ? "myservice-blue" : "eks-webapp-green"
-                    echo "Checking rollout status of deployment: ${deployName} in namespace: ${ns}"
+                    echo "Checking rollout status of deployment: ${deployName} in namespace: ${namespace}"
 
                     sh """
-                        kubectl rollout status deployment/${deployName} -n ${ns} --timeout=60s
+                        kubectl rollout status deployment/${deployName} -n ${namespace} --timeout=60s
                     """
                 }
             }
