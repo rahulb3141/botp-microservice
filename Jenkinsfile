@@ -138,7 +138,7 @@ pipeline {
             steps {
                 script {
                     def namespace = env.INACTIVE_COLOR
-                    def deployName = (ns == "blue") ? "myservice-blue" : "eks-webapp-green"
+                    def deployName = (namespace == "blue") ? "myservice-blue" : "eks-webapp-green"
                     echo "Checking rollout status of deployment: ${deployName} in namespace: ${namespace}"
 
                     sh """
