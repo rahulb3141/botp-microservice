@@ -1,12 +1,12 @@
 pipeline {
     agent any
-
+    
     environment {
         AWS_REGION = "us-east-1"
         ECR_REPO = "941960167356.dkr.ecr.us-east-1.amazonaws.com/eks-webapp"
         BLUE_TAG = "blue"
         GREEN_TAG = "green"
-        COLOR_FILE = "active_color.txt"
+        COLOR_FILE = "active_color.txt"     // file to track current prod color
     }
 
     stages {
@@ -21,73 +21,117 @@ pipeline {
         stage('Determine Active Color') {
             steps {
                 script {
+                    // Track deployment state using a file in Jenkins workspace
                     if (fileExists(COLOR_FILE)) {
                         ACTIVE_COLOR = readFile(COLOR_FILE).trim()
                     } else {
-                        ACTIVE_COLOR = "blue"
+                        ACTIVE_COLOR = "blue"   // default first prod
                         writeFile file: COLOR_FILE, text: ACTIVE_COLOR
                     }
+                    echo "Current active color: ${ACTIVE_COLOR}"
 
                     INACTIVE_COLOR = (ACTIVE_COLOR == "blue") ? "green" : "blue"
+                    echo "Deploying to inactive color: ${INACTIVE_COLOR}"
 
-                    echo "✅ Current Active Environment: ${ACTIVE_COLOR}"
-                    echo "🚀 Deploying to Inactive Environment: ${INACTIVE_COLOR}"
-
+                    // Expose vars globally
                     env.ACTIVE_COLOR = ACTIVE_COLOR
                     env.INACTIVE_COLOR = INACTIVE_COLOR
                 }
             }
         }
 
-        stage('Build Docker Image (Simulated)') {
+        stage('Verify AWS Identity') {
+            steps {
+                sh '''
+                    echo "=== Current AWS Identity ==="
+                    aws sts get-caller-identity
+                    echo "=== Should show eks-admin-role, NOT root ==="
+                '''
+            }
+        }
+
+        stage('Build Docker Image') {
             steps {
                 script {
                     def imageTag = (env.INACTIVE_COLOR == "blue") ? BLUE_TAG : GREEN_TAG
-                    echo "🛠️ Simulating Docker build for image: ${ECR_REPO}:${imageTag}"
+                    sh """
+                        docker build -t ${ECR_REPO}:${imageTag} .
+                    """
                 }
             }
         }
 
-        stage('Login to ECR (Simulated)') {
+        stage('Login to ECR') {
             steps {
-                echo "🔐 Simulating ECR login..."
+                sh '''
+                    echo "=== Logging into ECR using IAM role ==="
+                    aws ecr get-login-password --region $AWS_REGION | \
+                    docker login --username AWS --password-stdin $ECR_REPO
+                '''
             }
         }
 
-        stage('Push Docker Image (Simulated)') {
+        stage('Push Docker Image') {
             steps {
                 script {
                     def imageTag = (env.INACTIVE_COLOR == "blue") ? BLUE_TAG : GREEN_TAG
-                    echo "📤 Simulating docker push: ${ECR_REPO}:${imageTag}"
+
+                    sh """
+                        docker push ${ECR_REPO}:${imageTag}
+                    """
                 }
             }
         }
 
-        stage('Deploy to Inactive Color (Simulated)') {
+        stage('Deploy to Inactive Color') {
             steps {
                 script {
-                    echo "🚀 Simulating deployment to namespace: ${INACTIVE_COLOR}"
-                    echo "📦 Pretending to apply manifests from: k8s/${INACTIVE_COLOR}/"
-                    echo "✅ Deployment simulation complete."
+                    echo """
+                    🚀 DEPLOYMENT TO ${INACTIVE_COLOR}
+                    -------------------------------------------
+                    Applying manifests from k8s/${INACTIVE_COLOR}/
+                    Service applied from k8s/service.yaml
+                    -------------------------------------------
+                    """
+
+                    if (env.INACTIVE_COLOR == "blue") {
+                        sh "kubectl apply --validate=false -f k8s/blue/"
+                        sh "kubectl apply -f k8s/service.yaml -n blue"
+                    } else {
+                        sh "kubectl apply --validate=false -f k8s/green/"
+                        sh "kubectl apply -f k8s/service.yaml -n green"
+                    }
                 }
             }
         }
 
-        stage('Health Check (Simulated)') {
+        stage('Health Check') {
             steps {
                 script {
-                    echo "❤️ Simulating health check for ${INACTIVE_COLOR}..."
-                    sleep 2
-                    echo "✅ Health check passed!"
+                    def namespace = env.INACTIVE_COLOR
+                    echo "Checking pods in namespace ${namespace}"
+
+                    sh """
+                        kubectl rollout status deployment/eks-webapp-${namespace} -n ${namespace} --timeout=60s
+                    """
                 }
             }
         }
 
-        stage('Switch Traffic (Simulated)') {
+        stage('Switch Traffic') {
             steps {
                 script {
-                    echo "🔁 Simulating traffic switch from ${ACTIVE_COLOR} → ${INACTIVE_COLOR}"
-                    echo "✅ Traffic now pointing to: ${INACTIVE_COLOR}"
+                    if (env.INACTIVE_COLOR == "blue") {
+                        sh """
+                            kubectl delete ingress eks-webapp-ingress -n green --ignore-not-found
+                            kubectl apply --validate=false -f k8s/ingress.yaml -n blue
+                        """
+                    } else {
+                        sh """
+                            kubectl delete ingress eks-webapp-ingress -n blue --ignore-not-found
+                            kubectl apply --validate=false -f k8s/ingress.yaml -n green
+                        """
+                    }
                 }
             }
         }
@@ -96,18 +140,18 @@ pipeline {
             steps {
                 script {
                     writeFile file: COLOR_FILE, text: env.INACTIVE_COLOR
-                    echo "🟢 Updated active environment: ${INACTIVE_COLOR}"
+                    echo "Updated active color to ${INACTIVE_COLOR}"
                 }
             }
         }
     }
 
     post {
-        success {
-            echo "✅ Blue–Green simulated deployment completed successfully!"
-        }
         failure {
-            echo "❌ Pipeline failed — check logs!"
+            echo "Deployment failed. Rollback may be required."
+        }
+        success {
+            echo "✅ Blue-Green deployment completed successfully!"
         }
     }
 }
