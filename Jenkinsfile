@@ -155,13 +155,13 @@ pipeline {
                         echo "🔁 Switching traffic to BLUE..."
                         sh """
                             kubectl delete ingress eks-webapp-ingress -n green --ignore-not-found
-                            kubectl apply --validate=false -f k8s/ingress.yaml -n blue
+                            kubectl apply -f k8s/ingress.yaml -n blue
                         """
                     } else {
                         echo "🔁 Switching traffic to GREEN..."
                         sh """
                             kubectl delete ingress eks-webapp-ingress -n blue --ignore-not-found
-                            kubectl apply --validate=false -f k8s/ingress.yaml -n green
+                            kubectl apply -f k8s/ingress.yaml -n green
                         """
                     }
                 }
